@@ -2,27 +2,54 @@
 % Please edit documentation in R/catastrophic.R
 \name{calc_cc}
 \alias{calc_cc}
-\title{Title}
+\alias{summary.CataCosts}
+\alias{print.summaryCataCosts}
+\title{Calculate Time to Catastrophic Costs}
 \usage{
 calc_cc(cs, sp = c("none", "all spe", "all sen", "prop", "explicit"),
   sp_sen = 1, indirect = c("hc", "dinc", "prop"), indirect_hc = 1,
   hhi = c("annual", "treatment"), threshold = 0.2)
+
+\method{summary}{CataCosts}(ccs)
+
+\method{print}{summaryCataCosts}(obj)
 }
 \arguments{
-\item{cs}{}
+\item{cs}{an object of Costs}
 
-\item{sp}{}
+\item{sp}{option for specifying social protection}
 
-\item{sp_sen}{}
+\item{sp_sen}{proportion of social protection are TB-sensitive}
 
-\item{indirect}{}
+\item{indirect}{option for specifying indiriect cost}
 
-\item{indirect_hc}{}
+\item{indirect_hc}{weight of indiriect cost in human capital}
 
-\item{hhi}{}
+\item{hhi}{use annual household income or that of treatment period}
 
-\item{threshold}{}
+\item{threshold}{threshold of catastrophic costs}
+
+\item{cs}{an object of Costs}
+
+\item{sp}{option for specifying social protection}
+
+\item{sp_sen}{proportion of social protection are TB-sensitive}
+
+\item{indirect}{option for specifying indiriect cost}
+
+\item{indirect_hc}{weight of indiriect cost in human capital}
+
+\item{threshold}{threshold of catastrophic costs}
+}
+\value{
+an object of TimeToCataCosts
+
+an object of CataCosts concluding catastrophic costs
 }
 \description{
-Title
+Calculate Time to Catastrophic Costs
+}
+\examples{
+Calculate catastrophic costs
+
 }

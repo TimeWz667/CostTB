@@ -56,18 +56,31 @@ as_costs <- function(dat, inc_guard=T, explt.fn="Median", adjust_anchor="G3") {
 }
 
 
+#' Calculate Time to Catastrophic Costs
+#'
+#' @param cs an object of Costs
+#' @param sp option for specifying social protection
+#' @param sp_sen proportion of social protection are TB-sensitive
+#' @param indirect option for specifying indiriect cost
+#' @param indirect_hc weight of indiriect cost in human capital
+#' @param threshold threshold of catastrophic costs
+#'
+#' @return an object of TimeToCataCosts
+#' @export
+#'
+#' @examples
 
-#' Title
+#' Calculate catastrophic costs
 #'
-#' @param cs 
-#' @param sp 
-#' @param sp_sen 
-#' @param indirect 
-#' @param indirect_hc 
-#' @param hhi 
-#' @param threshold 
+#' @param cs an object of Costs
+#' @param sp option for specifying social protection
+#' @param sp_sen proportion of social protection are TB-sensitive
+#' @param indirect option for specifying indiriect cost
+#' @param indirect_hc weight of indiriect cost in human capital
+#' @param hhi use annual household income or that of treatment period
+#' @param threshold threshold of catastrophic costs
 #'
-#' @return
+#' @return an object of CataCosts concluding catastrophic costs
 #' @export
 #'
 #' @examples
@@ -89,13 +102,14 @@ calc_cc <- function(cs,
   
   res$IncomeBasis <- hhi <- match.arg(hhi)
   
-  ccs <- cs$source[c("X_id", "mdr")]
+  ccs <- cs$source[c("X_id", "MDR", "Sex", "AgeGrp")]
   
   ccs$sp_sen <- switch(sp, none = 0, 
                        prop=sp_sen * cs$source$c_spvoucher, 
                        "all spe" = 0,
                        "all sen" = cs$source$c_spvoucher, 
                        explicit = cs$source$c_sp_sen)
+  
   ccs$sp_spe <- switch(sp, none = 0, 
                        prop=(1 - sp_sen) * cs$source$c_spvoucher, 
                        "all spe" = cs$source$c_spvoucher,
@@ -131,13 +145,33 @@ calc_cc <- function(cs,
                    "P.All" = mean(cc),
                    "P.DS" = mean(cc[ccs$mdr==0]),
                    "P.MDR" = mean(cc[ccs$mdr==1]))
-  
-  res$needs <- rbind("Sp.Sen" = iqrmsd(ccs$add_sp_sen),
-                     "Sp.Sen.Agr" = c("", "", sum(ccs$outcome) / threshold - sum(ccs$income), "", ""),
-                     "Sp.Spe" = iqrmsd(ccs$add_sp_spe),
-                     "Sp.Spe.Agr" = c("", "", sum(ccs$outcome) - threshold * sum(ccs$income), "", ""))
-  
-  class(res) <- "CatastrophicCosts"
+
+  class(res) <- "CataCosts"
   
   return(res)
 }
+
+
+#' @rdname calc_cc
+#' @export
+summary.CataCosts <- function(ccs) {
+  ccs <- ccs$CCs
+  cc <- ccs$has_cc
+  res <- list()
+  res$Summary <- c("N.All" = sum(cc), 
+    "P.All" = mean(cc),
+    "P.DS" = mean(cc[ccs$mdr==0]),
+    "P.MDR" = mean(cc[ccs$mdr==1]))
+  
+  class(res) <- "summaryCataCosts"
+  return(res)
+}
+
+
+#' @rdname calc_cc
+#' @export
+print.summaryCataCosts <- function(obj) {
+  print(res$Summary)
+} 
+
+

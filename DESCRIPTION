@@ -1,4 +1,4 @@
-Package: VisPatientCostTB
+Package: CostTB
 Type: Package
 Title: Visualisation and analysis for patient cost survey data of TB
 Version: 0.1.0

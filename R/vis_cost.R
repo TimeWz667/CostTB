@@ -1,4 +1,4 @@
-#' Title
+#' Visualise the types of costs by age group
 #'
 #' @param catas 
 #' @param scale 
@@ -10,6 +10,7 @@
 #' @examples
 vis_type_age <- function(catas, scale = 1E3, xlab = "Costs per patient (NTD in thousand)") {
   require(tidyr)
+  require(dplyr)
   require(ggplot2)
   
   cas <- tibble::as_tibble(catas$CCs) %>%
@@ -39,6 +40,7 @@ vis_type_age <- function(catas, scale = 1E3, xlab = "Costs per patient (NTD in t
 #' @export
 vis_type_age_mdr <- function(catas, scale = 1E3, xlab = "Costs per patient (NTD in thousand)") {
   require(tidyr)
+  require(dplyr)
   require(ggplot2)
   
   cas <- tibble::as_tibble(catas$CCs) %>%

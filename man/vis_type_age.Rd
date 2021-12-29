@@ -2,7 +2,7 @@
 % Please edit documentation in R/vis_cost.R
 \name{vis_type_age}
 \alias{vis_type_age}
-\title{Title}
+\title{Visualise the types of costs by age group}
 \usage{
 vis_type_age(catas, scale = 1000,
   xlab = "Costs per patient (NTD in thousand)")
@@ -15,5 +15,5 @@ vis_type_age(catas, scale = 1000,
 \item{xlab}{}
 }
 \description{
-Title
+Visualise the types of costs by age group
 }

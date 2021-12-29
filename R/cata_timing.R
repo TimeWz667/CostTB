@@ -29,6 +29,95 @@ find_timing <- function(ccs, thres = 0.2) {
 }
 
 
+calc_pct_ti <- function(ccs, ti, max_value=2) {
+  if (ti <= 0) {
+    pct <- with(ccs, {
+      c_before / i_before
+    })
+  } else {
+    ti <- pmin(ti, ccs$dur_int + ccs$dur_con)
+    
+    pct <- ifelse(
+      ti <= ccs$dur_int,
+      with(ccs, {
+        (c_before + rate_c_int * ti) / (i_before + rate_i_int * ti)
+      }),
+      with(ccs, {
+        (c_int + rate_c_con * ti) / (i_int + rate_i_con * ti)
+      })
+    )
+  } 
+  
+  pct[is.na(pct)] <- max_value
+  pct <- pmax(pmin(pct, max_value), 0)
+  pct
+}
+
+
+calc_pct_pr <- function(ccs, phase, pr=NA, max_value=2) {
+  pr <- max(min(pr, 1), 0)
+  
+  if (phase == 0) {
+    pct <- with(ccs, { c_before / i_before })
+  } else if (phase == 1){
+    pct <- with(ccs, {
+      ti <- pr * dur_int
+      (c_before + rate_c_int * ti) / (i_before + rate_i_int * ti)
+    }) 
+  } else {
+    pct <- with(ccs, {
+      ti <- pr * dur_con
+      (c_int + rate_c_con * ti) / (i_int + rate_i_con * ti)
+    })
+  }
+  
+  pct[is.na(pct)] <- max_value
+  pct <- pmax(pmin(pct, max_value), 0)
+  pct
+}
+
+
+
+calc_pct_matrix_ti <- function(ccs, max_value = 2) {
+  ti_max <- max(ccs$dur)
+  
+  times <- seq(0, ti_max, 0.25)
+  res <- matrix(0, length(times), nrow(ccs))
+  
+  for (i in 1:length(times)) {
+    ti <- times[i]
+    res[i, ] <- calc_pct_ti(ccs, ti, max_value=max_value)
+  }
+  colnames(res) <- ccs$X_id
+  rownames(res) <- times
+  res <- data.frame(as.table(res))
+  colnames(res) <- c("Time", "X_id", "burden")
+  res$Time <- as.numeric(as.character(res$Time))
+  res <- merge(res, ccs[c("X_id", "MDR")])
+  return(res)
+}
+
+
+calc_pct_matrix_pr <- function(ccs, max_value = 2) {
+  prs <- seq(0, 1, 0.05)
+  
+  res <- matrix(0, length(prs) * 2 - 1, nrow(ccs))
+  
+  res[1, ] <- calc_pct_pr(ccs, 0, max_value = max_value)
+  
+  for (i in 2:length(prs)) {
+    res[i, ] <- calc_pct_pr(ccs, phase = 1, pr = prs[i], max_value = max_value)
+    res[i + length(prs) - 1, ] <- calc_pct_pr(ccs, phase = 2, pr = prs[i], max_value = max_value)
+  }
+  
+  colnames(res) <- ccs$X_id
+  rownames(res) <- c(prs, 1 + prs[-1])
+  res <- data.frame(as.table(res))
+  colnames(res) <- c("Pr", "X_id", "burden")
+  res$Pr <- as.numeric(as.character(res$Pr))
+  res <- merge(res, ccs[c("X_id", "MDR")])
+  return(res)
+}
 
 
 #' Calculate Time to Catastrophic Costs
@@ -77,7 +166,7 @@ calc_time_to_cc <- function(cs,
   
   ccs$dur_int <- cs$source$treat_duration_int
   ccs$dur_con <- cs$source$treat_duration_con
-  dur <- ccs$dur_int + ccs$dur_con
+  ccs$dur <- dur <- ccs$dur_int + ccs$dur_con
   
   ccs$c_before <- cs$costs_phase$c_before
   ccs$i_before <- cs$source$income_hh_pre_annual
@@ -112,6 +201,14 @@ calc_time_to_cc <- function(cs,
                                   ifelse(ccs$time_to_cc < ccs$dur_int, "Int", "Con"))
   )
   res$CCs <- ccs
+  
+  surv <- ccs[c("X_id", "MDR", "Sex", "AgeGrp", "time_to_cc")]
+  surv$event <- (!is.na(surv$time_to_cc)) + 0
+  surv$time <- ifelse(surv$event, surv$time_to_cc, dur)
+  res$Survival <- surv
+  
+  res$BurdenByTime <- calc_pct_matrix_ti(ccs, 2)
+  res$BurdenByPr <- calc_pct_matrix_pr(ccs, 2)
   
   class(res) <- "TimeToCataCosts"
   return(res)
@@ -150,111 +247,5 @@ summary.TimeToCataCosts <- function(ttcc) {
 #' @export
 print.summaryTimeToCataCosts <- function(res) {
   print(res$tab)
-}
-
-
-calculate_pct_pr <- function(cs, phase, pr=NA, max_value=2) {
-  pr <- max(min(pr, 1), 0)
-  
-  if (phase == 0) {
-    pct <- with(cs, {
-      c_before / income_hh_now_annual
-    })
-  } else if (phase == 1){
-    pct <- with(cs, {
-      cb <- c_before
-      dc <- c_int
-      ds <- c_spvoucher * treat_duration_int / treat_duration
-      i <- income_hh_now_annual
-      
-      (cb + dc * pr) / (i + ds * pr)
-    }) 
-  } else {
-    pct <- with(cs, {
-      cb <- c_before + c_int
-      dc <- c_con
-      ds <- c_spvoucher * treat_duration_cont / treat_duration
-      i <- income_hh_now_annual + c_spvoucher * treat_duration_int / treat_duration
-
-      (cb + dc * pr) / (i + ds * pr)
-    })
-  }
-  
-  pct[is.na(pct)] <- max_value
-  pct <- pmin(pct, max_value)
-  pct
-}
-
-
-calculate_pct_matrix_ti <- function(cs, thres=0.2, max_value=2) {
-  ti_max <- max(cs$treat_duration)
-  
-  ti <- 0
-  res <- data.frame(who=cs$X_id, 
-                    MDR=ifelse(cs$mdr==1, "MDR", "DS"),
-                    When=0,
-                    pct=calculate_pct_ti(cs, 0, max_value=max_value))
-  
-  for (ti in seq(0, ti_max, 0.25)[-1]) {
-    res <- rbind(res, 
-                 data.frame(who=cs$X_id, 
-                            MDR=ifelse(cs$mdr==1, "MDR", "DS"),
-                            When=ti,
-                            pct=calculate_pct_ti(cs, ti, max_value=max_value)))
-  }
-  
-  prop_all <- tapply(res$pct > thres, res$When, mean, na.rm=T)
-  prop_all <- data.frame(When=as.numeric(names(prop_all)), Prop=prop_all, MDR="All")
-  prop <- prop_all[order(prop_all$When), ] 
-  
-  prop_gp <- tapply(res$pct > thres, list(res$When, res$MDR), mean, na.rm=T)
-  prop_ds <- data.frame(When=as.numeric(names(prop_gp[, 1])), Prop=prop_gp[, 1], MDR="DS")
-  prop <- rbind(prop, prop_ds[order(prop_ds$When), ]) 
-  prop_mdr <- data.frame(When=as.numeric(names(prop_gp[, 2])), Prop=prop_gp[, 2], MDR="MDR")
-  prop <- rbind(prop, prop_mdr[order(prop_mdr$When), ]) 
-  
-  list(
-    TS=res,
-    Prop=prop
-  )
-}
-
-
-calculate_pct_matrix_pr <- function(cs, thres=0.2, max_value=2) {
-  res <- data.frame(who=cs$X_id, 
-                    MDR=ifelse(cs$mdr==1, "MDR", "DS"),
-                    When=0,
-                    pct=calculate_pct_pr(cs, 0, max_value=max_value))
-  
-  for (pr in seq(0, 1, 0.05)[-1]) {
-    res <- rbind(res, 
-                 data.frame(who=cs$X_id, 
-                            MDR=ifelse(cs$mdr==1, "MDR", "DS"),
-                            When=pr,
-                            pct=calculate_pct_pr(cs, phase=1, pr=pr, max_value=max_value)))
-  }
-  
-  for (pr in seq(0, 1, 0.05)[-1]) {
-    res <- rbind(res, 
-                 data.frame(who=cs$X_id, 
-                            MDR=ifelse(cs$mdr==1, "MDR", "DS"),
-                            When=pr + 1,
-                            pct=calculate_pct_pr(cs, phase=2, pr=pr, max_value=max_value)))
-  }
-  
-  prop_all <- tapply(res$pct > thres, res$When, mean, na.rm=T)
-  prop_all <- data.frame(When=as.numeric(names(prop_all)), Prop=prop_all, MDR="All")
-  prop <- prop_all[order(prop_all$When), ] 
-  
-  prop_gp <- tapply(res$pct > thres, list(res$When, res$MDR), mean, na.rm=T)
-  prop_ds <- data.frame(When=as.numeric(names(prop_gp[, 1])), Prop=prop_gp[, 1], MDR="DS")
-  prop <- rbind(prop, prop_ds[order(prop_ds$When), ]) 
-  prop_mdr <- data.frame(When=as.numeric(names(prop_gp[, 2])), Prop=prop_gp[, 2], MDR="MDR")
-  prop <- rbind(prop, prop_mdr[order(prop_mdr$When), ]) 
-  
-  list(
-    TS=res,
-    Prop=prop
-  )
 }
 

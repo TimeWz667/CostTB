@@ -15,6 +15,7 @@
 #' 
 vis_cc_age <- function(catas, by = 50) {
   require(tidyr)
+  require(dplyr)
   require(ggplot2)
   cas <- tibble::as_tibble(catas$CCs) %>%
     group_by(Sex, AgeGrp) %>%
@@ -47,6 +48,7 @@ vis_cc_age <- function(catas, by = 50) {
 #' @export
 vis_cc_age_mdr <- function(catas, by = 50) {
   require(tidyr)
+  require(dplyr)
   require(ggplot2)
   cas <- tibble::as_tibble(catas$CCs) %>%
     group_by(Sex, AgeGrp, MDR) %>%

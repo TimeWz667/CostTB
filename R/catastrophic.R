@@ -143,8 +143,8 @@ calc_cc <- function(cs,
   
   res$Summary <- c("N.All" = sum(cc), 
                    "P.All" = mean(cc),
-                   "P.DS" = mean(cc[ccs$mdr==0]),
-                   "P.MDR" = mean(cc[ccs$mdr==1]))
+                   "P.DS" = mean(cc[ccs$MDR == "DS"]),
+                   "P.MDR" = mean(cc[ccs$MDR == "MDR"]))
 
   class(res) <- "CataCosts"
   
@@ -160,8 +160,8 @@ summary.CataCosts <- function(ccs) {
   res <- list()
   res$Summary <- c("N.All" = sum(cc), 
     "P.All" = mean(cc),
-    "P.DS" = mean(cc[ccs$mdr==0]),
-    "P.MDR" = mean(cc[ccs$mdr==1]))
+    "P.DS" = mean(cc[ccs$MDR == "DS"]),
+    "P.MDR" = mean(cc[ccs$MDR == "MDR"]))
   
   class(res) <- "summaryCataCosts"
   return(res)

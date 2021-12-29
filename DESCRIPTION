@@ -1,7 +1,7 @@
 Package: CostTB
 Type: Package
 Title: Visualisation and analysis for patient cost survey data of TB
-Version: 0.1.0
+Version: 0.1.1
 Author: Chu-Chang Ku
 Maintainer: TimeWz667 <TimeWz667@gmail.com>
 Description: Visualisation and analysis for patient cost survey data of TB
